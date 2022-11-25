@@ -23,13 +23,13 @@ func init() {
 	CourseJSON := `[
 		{
 			"id":1,
-			"name":"Python",
-			"price":2590,
+			"name":"Svelte",
+			"price":3337,
 			"instructor":"okie"
 		},
 		{
 			"id":2,
-			"name": "JavaScript",
+			"name": "Rust",
 			"price":0,
 			"instructor":"okie"
 		},
@@ -154,7 +154,6 @@ func getNextID() int {
 func enableCorsMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Allow-Origin", "*")
-		// w.Header().Add("Access-Control-Allow-Origin", "http://localhost:5500")
 		w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		w.Header().Add("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Auth, X-CSRF-Token")
 		handler.ServeHTTP(w, r)
