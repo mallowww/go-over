@@ -14,6 +14,9 @@ import (
 
 var DB *sql.DB
 
+const cooursePath = "courses"
+const basePath = "/api"
+
 type Course struct {
 	CourseID   int     `json: "courseid"`
 	Coursename string  `json: "coursename"`
@@ -80,6 +83,27 @@ func handleCourses(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Enable CORS in Golang
+// https://stackoverflow.com/questions/39507065/enable-cors-in-golang
+// https://stackoverflow.com/questions/69608544/enable-cors-policy-in-golang
+func corsMiddleware(handler http.Handler) http.Handler{
+	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Access-Control-Allow-rigin", "*")
+		w.Header().Add("Content-Type", "application/json")
+		w.Header().Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Add("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization,X-CSRF-Token")
+		handler.ServeHTTP(w, r)
+	})
+}
+
+func SetupRoutes(apiBasePath string)  {
+	courseHandler := http.HandlerFunc(handleCourses)
+	http.Handle(fmt.Sprintf("%s/%s", apiBasePath, cooursePath), corsMiddleware(courseHandler))
+	
+}
+
 func main() {
 	SetupDB()
+	SetupRoutes(basePath)
+	log.Fatal(http.ListenAndServe(":5000", nil))
 }
