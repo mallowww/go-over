@@ -51,7 +51,8 @@ func getCourse(courseid int) (*Course, error) {
 		log.Println(err)
 		return nil, err
 	}
-	return nil, err
+	// return nil, err  // this is where get_one bugged
+	return course, nil
 }
 
 func getCourseList() ([]Course, error) {
@@ -109,7 +110,7 @@ func insertCourse(course Course) (int, error) {
 func removeCourse(courseID int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	_, err := DB.ExecContext(ctx, `DELETE FROM courseonline where id = ?`, courseID)
+	_, err := DB.ExecContext(ctx, `DELETE FROM courseonline where courseid = ?`, courseID)
 	if err != nil {
 		log.Println(err.Error())
 		return err
