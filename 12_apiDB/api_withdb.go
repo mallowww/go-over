@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -14,7 +16,7 @@ import (
 
 var DB *sql.DB
 
-const cooursePath = "courses"
+const coursePath = "courses"
 const basePath = "/api"
 
 type Course struct {
@@ -64,6 +66,68 @@ func getCourseList() ([]Course, error) {
 	return courses, nil
 }
 
+func insertProduct(course Course) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	res, err := DB.ExecContext(ctx, `INSER INTO test
+	(	courseid,
+		coursename,
+		price,
+		image_url,
+	) VALUES (?,?,?,?)`,
+		course.CourseID,
+		course.Coursename,
+		course.Price,
+		course.ImageURL)
+	if err != nil {
+		log.Println(err.Error())
+		return 0, err
+	}
+	insertID, err := res.LastInsertId()
+	if err != nil {
+		log.Println(err.Error())
+		return 0, err
+	}
+	return int(insertID), nil
+}
+
+func getCourse(courseid int) (*Course, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	row := DB.QueryRowContext(ctx, `SELECT
+	courseid,
+	coursename,
+	price,
+	image_url
+	FROM courseonline WHERE courseid = ?`, courseid)
+
+	course := &Course{}
+	err := row.Scan(
+		&course.CourseID,
+		&course.Coursename,
+		&course.Price,
+		&course.ImageURL,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	return nil, err
+}
+
+func removeCourse(courseID int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	_, err := DB.ExecContext(ctx, `DELETE FROM courseonline where id = ?`, courseID)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	return nil
+}
+
 func handleCourses(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -80,14 +144,78 @@ func handleCourses(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+	case http.MethodPost:
+		var course Course
+		err := json.NewDecoder((r.Body).Decode(&course))
+		if err != nil {
+			log.Print(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		CourseID, err := insertProduct(course)
+		if err != nil {
+			log.Print(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte(fmt.Sprintf(`{"courseid":%d}`, CourseID)))
+
+	case http.MethodDelete:
+		err := removeCourse(courseID)
+		if err != nil {
+			log.Print(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+func handleCourse(w http.ResponseWriter, r *http.Request) {
+	urlPathSegments := strings.Split(r.URL.Path, fmt.Sprintf("%s/", coursePath))
+	if len(urlPathSegments[1:]) > 1 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	courseID, err := strconv.Atoi(urlPathSegments[len(urlPathSegments)-1])
+	if err != nil {
+		log.Print(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		course, err := getCourse(courseID)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if course == nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		j, err := json.Marshal(course)
+		if err != nil {
+			log.Print(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		_, err = w.Write(j)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
 // Enable CORS in Golang
 // https://stackoverflow.com/questions/39507065/enable-cors-in-golang
 // https://stackoverflow.com/questions/69608544/enable-cors-policy-in-golang
-func corsMiddleware(handler http.Handler) http.Handler{
-	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+func corsMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Allow-rigin", "*")
 		w.Header().Add("Content-Type", "application/json")
 		w.Header().Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -96,10 +224,15 @@ func corsMiddleware(handler http.Handler) http.Handler{
 	})
 }
 
-func SetupRoutes(apiBasePath string)  {
-	courseHandler := http.HandlerFunc(handleCourses)
-	http.Handle(fmt.Sprintf("%s/%s", apiBasePath, cooursePath), corsMiddleware(courseHandler))
-	
+func SetupRoutes(apiBasePath string) {
+	courseHandler := http.HandlerFunc(handleCourse)
+	http.Handle(fmt.Sprintf("%s/%s/", apiBasePath, 
+	coursePath), corsMiddleware(courseHandler))
+
+	coursesHandler := http.HandlerFunc(handleCourses)
+	http.Handle(fmt.Sprintf("%s/%s", apiBasePath, 
+	coursePath), corsMiddleware(coursesHandler))
+
 }
 
 func main() {
