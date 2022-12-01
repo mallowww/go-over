@@ -14,28 +14,44 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var DB *sql.DB
-
-const coursePath = "courses"
-const basePath = "/api"
-
 type Course struct {
 	CourseID   int     `json: "courseid"`
 	Coursename string  `json: "coursename"`
 	Price      float64 `json: "price"`
-	ImageURL   string  `json: "imageurl"`
+	ImageURL   string  `json: "image_url"`
 }
 
-func SetupDB() {
-	var err error
-	DB, err = sql.Open("mysql", "root:mysqlbro124@tcp(127.0.0.1:3306)/coursedb")
-	if err != nil {
-		log.Fatal(err)
+var DB *sql.DB
+var courseList []Course
+
+const coursePath = "courses"
+const basePath = "/api"
+
+func getCourse(courseid int) (*Course, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	row := DB.QueryRowContext(ctx, `SELECT
+	courseid,
+	coursename,
+	price,
+	image_url
+	FROM courseonline
+	WHERE courseid = ?`, courseid)
+
+	course := &Course{}
+	err := row.Scan(
+		&course.CourseID,
+		&course.Coursename,
+		&course.Price,
+		&course.ImageURL,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		log.Println(err)
+		return nil, err
 	}
-	fmt.Println(DB)
-	DB.SetConnMaxLifetime(time.Minute * 2)
-	DB.SetMaxIdleConns(10)
-	DB.SetConnMaxIdleTime(10)
+	return nil, err
 }
 
 func getCourseList() ([]Course, error) {
@@ -58,22 +74,21 @@ func getCourseList() ([]Course, error) {
 		res.Scan(&course.CourseID,
 			&course.Coursename,
 			&course.Price,
-			&course.ImageURL,
-		)
+			&course.ImageURL)
 
 		courses = append(courses, course)
 	}
 	return courses, nil
 }
 
-func insertProduct(course Course) (int, error) {
+func insertCourse(course Course) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	res, err := DB.ExecContext(ctx, `INSER INTO test
+	res, err := DB.ExecContext(ctx, `INSERT INTO courseonline
 	(	courseid,
 		coursename,
 		price,
-		image_url,
+		image_url
 	) VALUES (?,?,?,?)`,
 		course.CourseID,
 		course.Coursename,
@@ -89,32 +104,6 @@ func insertProduct(course Course) (int, error) {
 		return 0, err
 	}
 	return int(insertID), nil
-}
-
-func getCourse(courseid int) (*Course, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	row := DB.QueryRowContext(ctx, `SELECT
-	courseid,
-	coursename,
-	price,
-	image_url
-	FROM courseonline WHERE courseid = ?`, courseid)
-
-	course := &Course{}
-	err := row.Scan(
-		&course.CourseID,
-		&course.Coursename,
-		&course.Price,
-		&course.ImageURL,
-	)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	} else if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	return nil, err
 }
 
 func removeCourse(courseID int) error {
@@ -147,13 +136,13 @@ func handleCourses(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPost:
 		var course Course
-		err := json.NewDecoder((r.Body).Decode(&course))
+		err := json.NewDecoder(r.Body).Decode(&course)
 		if err != nil {
 			log.Print(err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		CourseID, err := insertProduct(course)
+		CourseID, err := insertCourse(course)
 		if err != nil {
 			log.Print(err)
 			w.WriteHeader(http.StatusBadRequest)
@@ -162,13 +151,8 @@ func handleCourses(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(fmt.Sprintf(`{"courseid":%d}`, CourseID)))
 
-	case http.MethodDelete:
-		err := removeCourse(courseID)
-		if err != nil {
-			log.Print(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	case http.MethodOptions:
+		return
 
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -208,6 +192,17 @@ func handleCourse(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+	case http.MethodDelete:
+		err := removeCourse(courseID)
+		if err != nil {
+			log.Print(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
@@ -225,14 +220,23 @@ func corsMiddleware(handler http.Handler) http.Handler {
 }
 
 func SetupRoutes(apiBasePath string) {
-	courseHandler := http.HandlerFunc(handleCourse)
-	http.Handle(fmt.Sprintf("%s/%s/", apiBasePath, 
-	coursePath), corsMiddleware(courseHandler))
-
 	coursesHandler := http.HandlerFunc(handleCourses)
-	http.Handle(fmt.Sprintf("%s/%s", apiBasePath, 
-	coursePath), corsMiddleware(coursesHandler))
+	courseHandler := http.HandlerFunc(handleCourse)
 
+	http.Handle(fmt.Sprintf("%s/%s", apiBasePath, coursePath), corsMiddleware(coursesHandler))
+	http.Handle(fmt.Sprintf("%s/%s/", apiBasePath, coursePath), corsMiddleware(courseHandler))
+}
+
+func SetupDB() {
+	var err error
+	DB, err = sql.Open("mysql", "root:mysqlbro124@tcp(127.0.0.1:3306)/coursedb")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(DB)
+	DB.SetConnMaxLifetime(time.Minute * 2)
+	DB.SetMaxIdleConns(10)
+	DB.SetConnMaxIdleTime(10)
 }
 
 func main() {
