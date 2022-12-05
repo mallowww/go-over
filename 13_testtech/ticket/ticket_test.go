@@ -4,80 +4,29 @@ import "testing"
 
 // Boundary test - 0,3/0; 4,15/15; 16,50,/30; 51/5;
 // -1
+
 func TestTicketPrice(t *testing.T) {
-	t.Run("should return 0 when age = 0", func(t *testing.T) {
-		want := 0.0
-		age := 0
+	// test case
+	tests := []struct {
+		name string
+		age  int
+		want float64
+	}{ // initiate
+		{name: "Free ticket when age is 0", age: 0, want: 0.0},
+		{name: "Free ticket when age is 3", age: 3, want: 0.0},
+		{name: "15$ ticket when age is 4", age: 4, want: 15.0},
+		{name: "15$ ticket when age is 15", age: 15, want: 15.0},
+		{"30$ ticket when age is 16", 16, 30.0},
+		{"30$ ticket when age is 50", 50, 30.0},
+		{"5$ ticket when age is 51", 51, 5.0},
+	}
 
-		got := Price(age)
-
-		if got != want {
-			t.Errorf("Price(0) = %f; want %f", got, want)
-		}
-	})
-
-	t.Run("should return free ticket when age under 3 yrs", func(t *testing.T) {
-		want := 0.0
-		age := 3
-
-		got := Price(age)
-
-		if got != want {
-			t.Errorf("Price(3) = %f; want %f", got, want)
-		}
-	})
-
-	t.Run("should return 15usd ticket when age at 4 yrs", func(t *testing.T) {
-		want := 15.0
-		age := 4
-
-		got := Price(age)
-
-		if got != want {
-			t.Errorf("Price(4) = %f; want %f", got, want)
-		}
-	})
-
-	t.Run("should return 15usd ticket when age at 15 yrs", func(t *testing.T) {
-		want := 15.0
-		age := 15
-
-		got := Price(age)
-
-		if got != want {
-			t.Errorf("Price(15) = %f; want %f", got, want)
-		}
-	})
-
-	t.Run("should return 15usd ticket when age over 15 yrs", func(t *testing.T) {
-		want := 30.0
-		age := 16
-
-		got := Price(age)
-
-		if got != want {
-			t.Errorf("Price(16) = %f; want %f", got, want)
-		}
-	})
-
-	t.Run("should return 30usd ticket when age at 50 yrs", func(t *testing.T) {
-		want := 30.0
-		age := 50
-
-		got := Price(age)
-
-		if got != want {
-			t.Errorf("Price(50) = %f; want %f", got, want)
-		}
-	})
-	t.Run("should return 30usd ticket when age over 50 yrs", func(t *testing.T) {
-		want := 5.0
-		age := 51
-
-		got := Price(age)
-
-		if got != want {
-			t.Errorf("Price(51) = %f; want %f", got, want)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Price(tt.age)
+			if got != tt.want {
+				t.Errorf("Price(%d) = %f, want %f", tt.age, got, tt.want)
+			}
+		})
+	}
 }
