@@ -3,6 +3,7 @@ secret_env_info.md
 .env
 
 # in stash
+00_playground
 10_goredis 
 extensions.json
 
