@@ -25,8 +25,9 @@ func (p *Phonebook) Find(query Queryer, firstName, lastName string) (string, err
 	if firstName == "" || lastName == "" {
 		return "", ErrMissingArgs
 	}
-	
+
 	person := query.Search(p.People, firstName, lastName)
+	// person := &Person{}
 	if person == nil {
 		return "", ErrNoPersonFound
 	}
