@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 )
 
 type User struct {
@@ -63,11 +64,37 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
+// func logMiddleware(Handler http.HandlerFunc) http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		start := time.Now()
+// 		Handler.ServeHTTP(w, r)
+// 		log.Printf("Server http middleware: %s %s %s %s ", r.RemoteAddr, r.Method, r.URL, time.Since(start))
+// 	}
+// }
+
+type Logger struct {
+	Handler http.Handler
+}
+
+func (l Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	l.Handler.ServeHTTP(w, r)
+	log.Printf("Server http middleware: %s %s %s %s ", r.RemoteAddr, r.Method, r.URL, time.Since(start))
+
+}
+
 func main() {
-	http.HandleFunc("/users", usersHandler)
-	http.HandleFunc("/health", healthHandler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users", usersHandler)
+	mux.HandleFunc("/health", healthHandler)
+
+	logMux := Logger{Handler: mux}
+	srv := http.Server{
+		Addr:    ":8080",
+		Handler: logMux,
+	}
 
 	log.Println("server started at default port, :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(srv.ListenAndServe())
 	log.Println("close")
 }
