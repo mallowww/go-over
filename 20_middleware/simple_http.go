@@ -6,7 +6,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+<<<<<<< HEAD
 	"time"
+=======
+>>>>>>> 55103d7 (:construction: feat(middleware): fcf, fl, hof, logMdw)
 )
 
 type User struct {
@@ -64,6 +67,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
+<<<<<<< HEAD
 // func logMiddleware(Handler http.HandlerFunc) http.HandlerFunc {
 // 	return func(w http.ResponseWriter, r *http.Request) {
 // 		start := time.Now()
@@ -96,5 +100,13 @@ func main() {
 
 	log.Println("server started at default port, :8080")
 	log.Fatal(srv.ListenAndServe())
+=======
+func main() {
+	http.HandleFunc("/users", usersHandler)
+	http.HandleFunc("/health", healthHandler)
+
+	log.Println("server started at default port, :8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
+>>>>>>> 55103d7 (:construction: feat(middleware): fcf, fl, hof, logMdw)
 	log.Println("close")
 }
