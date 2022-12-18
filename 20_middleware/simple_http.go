@@ -7,9 +7,13 @@ import (
 	"log"
 	"net/http"
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"time"
 =======
 >>>>>>> 55103d7 (:construction: feat(middleware): fcf, fl, hof, logMdw)
+=======
+	"time"
+>>>>>>> a84c37a (:sparkles: feat(middleware): log)
 )
 
 type User struct {
@@ -68,6 +72,9 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> a84c37a (:sparkles: feat(middleware): log)
 // func logMiddleware(Handler http.HandlerFunc) http.HandlerFunc {
 // 	return func(w http.ResponseWriter, r *http.Request) {
 // 		start := time.Now()
@@ -87,6 +94,7 @@ func (l Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
+<<<<<<< HEAD
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/users", usersHandler)
@@ -101,12 +109,25 @@ func main() {
 	log.Println("server started at default port, :8080")
 	log.Fatal(srv.ListenAndServe())
 =======
+=======
+>>>>>>> a84c37a (:sparkles: feat(middleware): log)
 func main() {
-	http.HandleFunc("/users", usersHandler)
-	http.HandleFunc("/health", healthHandler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users", usersHandler)
+	mux.HandleFunc("/health", healthHandler)
+
+	logMux := Logger{Handler: mux}
+	srv := http.Server{
+		Addr:    ":8080",
+		Handler: logMux,
+	}
 
 	log.Println("server started at default port, :8080")
+<<<<<<< HEAD
 	log.Fatal(http.ListenAndServe(":8080", nil))
 >>>>>>> 55103d7 (:construction: feat(middleware): fcf, fl, hof, logMdw)
+=======
+	log.Fatal(srv.ListenAndServe())
+>>>>>>> a84c37a (:sparkles: feat(middleware): log)
 	log.Println("close")
 }
