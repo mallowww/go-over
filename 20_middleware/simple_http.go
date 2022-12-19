@@ -6,14 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-<<<<<<< HEAD
-<<<<<<< HEAD
 	"time"
-=======
->>>>>>> 55103d7 (:construction: feat(middleware): fcf, fl, hof, logMdw)
-=======
-	"time"
->>>>>>> a84c37a (:sparkles: feat(middleware): log)
 )
 
 type User struct {
@@ -71,10 +64,6 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> a84c37a (:sparkles: feat(middleware): log)
 // func logMiddleware(Handler http.HandlerFunc) http.HandlerFunc {
 // 	return func(w http.ResponseWriter, r *http.Request) {
 // 		start := time.Now()
@@ -94,10 +83,28 @@ func (l Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-<<<<<<< HEAD
+func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		u, p, ok := r.BasicAuth()
+		// log.Println("auth", u, p, ok)
+		if !ok {
+			w.WriteHeader(401)
+			w.Write([]byte(`can't parse the basic auth`))
+			return
+		}
+		if u != "okiebro" || p != "welp4455" {
+			w.WriteHeader(401)
+			w.Write([]byte(`Username/Password incorrect.`))
+			return
+		}
+		fmt.Println("Auth passed.")
+		next(w, r)
+	}
+}
+
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/users", usersHandler)
+	mux.HandleFunc("/users", AuthMiddleware(usersHandler))
 	mux.HandleFunc("/health", healthHandler)
 
 	logMux := Logger{Handler: mux}
@@ -108,26 +115,5 @@ func main() {
 
 	log.Println("server started at default port, :8080")
 	log.Fatal(srv.ListenAndServe())
-=======
-=======
->>>>>>> a84c37a (:sparkles: feat(middleware): log)
-func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/users", usersHandler)
-	mux.HandleFunc("/health", healthHandler)
-
-	logMux := Logger{Handler: mux}
-	srv := http.Server{
-		Addr:    ":8080",
-		Handler: logMux,
-	}
-
-	log.Println("server started at default port, :8080")
-<<<<<<< HEAD
-	log.Fatal(http.ListenAndServe(":8080", nil))
->>>>>>> 55103d7 (:construction: feat(middleware): fcf, fl, hof, logMdw)
-=======
-	log.Fatal(srv.ListenAndServe())
->>>>>>> a84c37a (:sparkles: feat(middleware): log)
 	log.Println("close")
 }
