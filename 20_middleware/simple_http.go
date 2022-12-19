@@ -83,9 +83,28 @@ func (l Logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		u, p, ok := r.BasicAuth()
+		// log.Println("auth", u, p, ok)
+		if !ok {
+			w.WriteHeader(401)
+			w.Write([]byte(`can't parse the basic auth`))
+			return
+		}
+		if u != "okiebro" || p != "welp4455" {
+			w.WriteHeader(401)
+			w.Write([]byte(`Username/Password incorrect.`))
+			return
+		}
+		fmt.Println("Auth passed.")
+		next(w, r)
+	}
+}
+
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/users", usersHandler)
+	mux.HandleFunc("/users", AuthMiddleware(usersHandler))
 	mux.HandleFunc("/health", healthHandler)
 
 	logMux := Logger{Handler: mux}
