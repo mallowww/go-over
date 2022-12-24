@@ -1,3 +1,5 @@
+//go:build integration
+
 package main
 
 import (
@@ -12,21 +14,12 @@ import (
 )
 
 func TestGetAllUser(t *testing.T) {
-	// insert ของ
-	var c User
-	body := bytes.NewBufferString(`{
-		"name": "letstryit",
-		"age": 14
-	}`)
-	err := request(http.MethodPost, uri("users"), body).Decode(&c)
-	if err != nil {
-		t.Fatal("can't create users - ", err)
-	}
+	seedUser(t)
 
 	// ยิง request มาดูของที่ได้ว่า success รึไม่
 	var us []User
 	res := request(http.MethodGet, uri("users"), nil)
-	err = res.Decode(&us)
+	err := res.Decode(&us)
 
 	assert.Nil(t, err)
 	assert.EqualValues(t, http.StatusOK, res.StatusCode)
@@ -42,6 +35,19 @@ func uri(paths ...string) string {
 
 	url := append([]string{host}, paths...)
 	return strings.Join(url, "/")
+}
+
+func seedUser(t *testing.T) User {
+	var c User
+	body := bytes.NewBufferString(`{
+		"name": "okie",
+		"age": 15
+	}`)
+	err := request(http.MethodPost, uri("users"), body).Decode(&c)
+	if err != nil {
+		t.Fatal("can't create users - ", err)
+	}
+	return c
 }
 
 type Response struct {
