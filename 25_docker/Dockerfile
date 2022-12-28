@@ -1,11 +1,21 @@
-FROM golang:1.19-alpine
+FROM golang:1.19-alpine as build-base
 
 WORKDIR /app
 
-COPY . .
+COPY go.mod .
 
 RUN go mod download
 
+COPY . .
+
+RUN CGO_ENABLED=0 go test -v
+
 RUN go build -o ./out/go-sample . 
 
-CMD ["/app/out/go-sample"]
+# ======================
+
+FROM alpine:3.17.0
+
+COPY --from=build-base /app/out/go-sample /app/go-sample
+
+CMD ["/app/go-sample"]
